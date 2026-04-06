@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Real Estate Deal Analyzer</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f7f6f3;
+    --bg3: #efede8;
+    --text: #1a1a18;
+    --text2: #6b6b67;
+    --text3: #9a9994;
+    --border: rgba(0,0,0,0.1);
+    --border2: rgba(0,0,0,0.18);
+    --green-bg: #eaf3de; --green: #27500a; --green-border: #97c459; --green-mid: #3b6d11;
+    --amber-bg: #faeeda; --amber: #633806; --amber-border: #ef9f27; --amber-mid: #854f0b;
+    --red-bg: #fcebeb; --red: #791f1f; --red-border: #f09595; --red-mid: #a32d2d;
+    --blue-bg: #e6f1fb; --blue: #042c53; --blue-mid: #185fa5;
+    --radius: 8px; --radius-lg: 12px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-lg: 0 4px 16px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a; --bg2: #252523; --bg3: #2e2e2b;
+      --text: #f0ede8; --text2: #9a9994; --text3: #6b6b67;
+      --border: rgba(255,255,255,0.08); --border2: rgba(255,255,255,0.14);
+      --green-bg: #1a2e0d; --green: #a8d977; --green-border: #3b6d11; --green-mid: #7ab84e;
+      --amber-bg: #2a1e08; --amber: #f5c87a; --amber-border: #854f0b; --amber-mid: #d4922a;
+      --red-bg: #2a0f0f; --red: #f5a0a0; --red-border: #a32d2d; --red-mid: #d45a5a;
+      --blue-bg: #0a1e33; --blue: #a8cff0; --blue-mid: #5ba0e0;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: var(--font); background: var(--bg3); color: var(--text); font-size: 14px; min-height: 100vh; }
+
+  /* HEADER */
+  .app-header { background: var(--bg); border-bottom: 1px solid var(--border); padding: 0 24px; position: sticky; top: 0; z-index: 100; }
+  .header-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; gap: 16px; height: 56px; }
+  .app-logo { font-size: 15px; font-weight: 600; color: var(--text); }
+  .app-logo span { color: var(--text2); font-weight: 400; }
+  .app-nav { display: flex; gap: 2px; margin-left: auto; }
+  .nav-btn { padding: 6px 14px; font-size: 13px; font-weight: 500; border-radius: var(--radius); cursor: pointer; border: none; background: transparent; color: var(--text2); transition: all .15s; }
+  .nav-btn:hover { background: var(--bg2); color: var(--text); }
+  .nav-btn.active { background: var(--text); color: var(--bg); }
+
+  /* LAYOUT */
+  .app-body { max-width: 1100px; margin: 0 auto; padding: 24px 16px; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; } .page.active { display: block; }
+
+  /* PROPERTY TABS */
+  .prop-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+  .prop-chip { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 12px; font-weight: 500; border: 1px solid var(--border2); border-radius: 20px; cursor: pointer; background: var(--bg); color: var(--text2); transition: all .15s; }
+  .prop-chip:hover { border-color: var(--text3); color: var(--text); }
+  .prop-chip.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .prop-chip .score-dot { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+  .add-prop-btn { padding: 6px 12px; font-size: 12px; font-weight: 500; border: 1px dashed var(--border2); border-radius: 20px; cursor: pointer; background: transparent; color: var(--text2); transition: all .15s; }
+  .add-prop-btn:hover { border-color: var(--text2); color: var(--text); background: var(--bg2); }
+  .remove-btn { padding: 4px 10px; font-size: 11px; border: 1px solid var(--red-border); border-radius: 20px; cursor: pointer; background: transparent; color: var(--red-mid); }
+
+  /* CARDS */
+  .card { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px 20px; margin-bottom: 12px; box-shadow: var(--shadow); }
+  .card-title { font-size: 12px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+
+  /* SECTION LABELS */
+  .sec-label { font-size: 10px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; margin-top: 20px; }
+  .sec-label:first-child { margin-top: 0; }
+
+  /* GRIDS */
+  .g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .g4 { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 12px; }
+  @media (max-width: 640px) { .g2,.g3,.g4 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 420px) { .g2,.g3,.g4 { grid-template-columns: 1fr; } }
+
+  /* FIELDS */
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .field input, .field select { padding: 8px 10px; font-size: 13px; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); width: 100%; transition: border-color .15s; font-family: var(--font); }
+  .field input:focus, .field select:focus { outline: none; border-color: var(--text2); }
+  .field .hint { font-size: 10px; color: var(--text3); margin-top: 1px; }
+  .field select option { background: var(--bg); color: var(--text); }
+
+  /* STRAT TABS */
+  .strat-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; }
+  .strat-tab { padding: 8px 16px; font-size: 12px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; color: var(--text2); background: none; border-top: none; border-left: none; border-right: none; white-space: nowrap; transition: all .15s; }
+  .strat-tab:hover { color: var(--text); }
+  .strat-tab.active { color: var(--text); border-bottom: 2px solid var(--text); }
+
+  /* INNER VIEW TABS */
+  .view-tabs { display: flex; gap: 4px; margin-bottom: 16px; flex-wrap: wrap; }
+  .view-tab { padding: 6px 14px; font-size: 12px; font-weight: 500; border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; background: var(--bg); color: var(--text2); transition: all .15s; }
+  .view-tab:hover { background: var(--bg2); color: var(--text); }
+  .view-tab.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .vpanel { display: none; } .vpanel.active { display: block; }
+
+  /* METRICS */
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 12px 0; }
+  .met { background: var(--bg2); border-radius: var(--radius); padding: 12px 14px; }
+  .met .ml { font-size: 10px; color: var(--text2); margin-bottom: 4px; font-weight: 500; }
+  .met .mv { font-size: 19px; font-weight: 600; color: var(--text); }
+  .met .ms { font-size: 10px; color: var(--text3); margin-top: 2px; }
+  .met.good { background: var(--green-bg); } .met.good .ml, .met.good .ms { color: var(--green-mid); } .met.good .mv { color: var(--green); }
+  .met.warn { background: var(--amber-bg); } .met.warn .ml, .met.warn .ms { color: var(--amber-mid); } .met.warn .mv { color: var(--amber); }
+  .met.bad { background: var(--red-bg); } .met.bad .ml, .met.bad .ms { color: var(--red-mid); } .met.bad .mv { color: var(--red); }
+
+  /* ROWS */
+  .row-list { width: 100%; }
+  .drow { display: flex; justify-content: space-between; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: 12px; gap: 8px; }
+  .drow:last-child { border-bottom: none; }
+  .drow.total { border-top: 1px solid var(--border2); padding-top: 10px; margin-top: 4px; border-bottom: none; }
+  .rl { color: var(--text2); flex: 1; }
+  .rv { font-weight: 600; color: var(--text); white-space: nowrap; }
+  .rv.pos { color: var(--green); } .rv.neg { color: var(--red); } .rv.warn { color: var(--amber); }
+  .rv.xl { font-size: 16px; }
+
+  /* VERDICT */
+  .verdict { border-radius: var(--radius-lg); padding: 16px 20px; margin: 16px 0; }
+  .verdict.pass { background: var(--green-bg); border: 1px solid var(--green-border); }
+  .verdict.warn { background: var(--amber-bg); border: 1px solid var(--amber-border); }
+  .verdict.fail { background: var(--red-bg); border: 1px solid var(--red-border); }
+  .vt { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+  .verdict.pass .vt { color: var(--green); } .verdict.warn .vt { color: var(--amber); } .verdict.fail .vt { color: var(--red); }
+  .vp { font-size: 12px; line-height: 1.65; margin-bottom: 10px; }
+  .verdict.pass .vp { color: var(--green-mid); } .verdict.warn .vp { color: var(--amber-mid); } .verdict.fail .vp { color: var(--red-mid); }
+  .bw { background: rgba(0,0,0,.1); border-radius: 20px; height: 6px; margin: 8px 0 10px; overflow: hidden; }
+  .bar { height: 6px; border-radius: 20px; transition: width .4s ease; }
+  .crit { display: flex; align-items: center; gap: 8px; padding: 5px 0; border-bottom: 1px solid rgba(0,0,0,.06); font-size: 12px; }
+  .crit:last-child { border-bottom: none; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+  .dot.p { background: #639922; } .dot.w { background: #ba7517; } .dot.f { background: #e24b4a; }
+  .cl { flex: 1; color: var(--text2); } .cv { font-weight: 600; color: var(--text); }
+
+  /* WATERFALL */
+  .wf-row { display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: var(--radius); margin-bottom: 4px; font-size: 12px; }
+  .wf-phase { background: var(--bg3); font-weight: 600; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: var(--text2); margin-top: 12px; margin-bottom: 6px; }
+  .wf-label { flex: 1; color: var(--text2); }
+  .wf-amt { font-weight: 600; white-space: nowrap; }
+  .wf-amt.out { color: var(--red); } .wf-amt.inn { color: var(--green); } .wf-amt.net { color: var(--text); font-size: 13px; }
+  .wf-sub { background: var(--bg2); border-radius: var(--radius); }
+  .wf-sub .wf-label { color: var(--text); font-weight: 600; }
+  .wf-final-good { background: var(--green-bg); } .wf-final-good .wf-label { color: var(--green); font-weight: 600; } .wf-final-good .wf-amt { color: var(--green); }
+  .wf-final-warn { background: var(--amber-bg); } .wf-final-warn .wf-label { color: var(--amber); font-weight: 600; } .wf-final-warn .wf-amt { color: var(--amber); }
+  .wf-final-bad { background: var(--red-bg); } .wf-final-bad .wf-label { color: var(--red); font-weight: 600; } .wf-final-bad .wf-amt { color: var(--red); }
+
+  /* SCENARIOS */
+  .scen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 12px 0; }
+  .scen { background: var(--bg2); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 12px 14px; }
+  .scen.best { background: var(--green-bg); border-color: var(--green-border); }
+  .scen.risk { background: var(--red-bg); border-color: var(--red-border); }
+  .scen .sl2 { font-size: 10px; margin-bottom: 4px; color: var(--text2); font-weight: 500; }
+  .scen.best .sl2 { color: var(--green-mid); } .scen.risk .sl2 { color: var(--red-mid); }
+  .scen .sp { font-size: 15px; font-weight: 700; color: var(--text); }
+  .scen.best .sp { color: var(--green); } .scen.risk .sp { color: var(--red); }
+  .scen .sd { font-size: 10px; color: var(--text3); margin-top: 3px; line-height: 1.5; }
+  .scen.best .sd { color: var(--green-mid); } .scen.risk .sd { color: var(--red-mid); }
+
+  /* TAGS */
+  .tags { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; }
+  .tag { font-size: 11px; font-weight: 500; padding: 3px 10px; border-radius: 20px; }
+  .tag.risk { background: var(--red-bg); color: var(--red-mid); }
+  .tag.opp { background: var(--green-bg); color: var(--green-mid); }
+  .tag.neutral { background: var(--bg2); color: var(--text2); }
+
+  /* PORTFOLIO TABLE */
+  .ptable { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .ptable th { font-size: 10px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--text3); padding: 8px 10px; border-bottom: 1px solid var(--border2); text-align: left; white-space: nowrap; }
+  .ptable td { padding: 10px 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+  .ptable tr:last-child td { border-bottom: none; }
+  .ptable .good { color: var(--green); font-weight: 600; }
+  .ptable .warn { color: var(--amber); font-weight: 600; }
+  .ptable .bad { color: var(--red); font-weight: 600; }
+  .pill { display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 10px; }
+  .pill.pass { background: var(--green-bg); color: var(--green); }
+  .pill.warn { background: var(--amber-bg); color: var(--amber); }
+  .pill.fail { background: var(--red-bg); color: var(--red); }
+
+  /* ACTION BUTTON */
+  .action-btn { width: 100%; padding: 11px 16px; font-size: 13px; font-weight: 600; border: 1px solid var(--border2); border-radius: var(--radius); background: var(--bg); color: var(--text); cursor: pointer; margin-top: 16px; transition: all .15s; font-family: var(--font); }
+  .action-btn:hover { background: var(--bg2); }
+  .action-btn.primary { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .action-btn.primary:hover { opacity: .85; }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+
+  /* TOOLTIP / EMPTY */
+  .empty { text-align: center; padding: 48px 24px; color: var(--text3); font-size: 13px; }
+
+  /* NOTION GUIDE */
+  .guide-step { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+  .guide-step:last-child { border-bottom: none; }
+  .step-num { width: 28px; height: 28px; border-radius: 50%; background: var(--text); color: var(--bg); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+  .step-body { flex: 1; }
+  .step-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+  .step-desc { font-size: 12px; color: var(--text2); line-height: 1.6; }
+  .step-code { font-family: monospace; background: var(--bg3); padding: 8px 12px; border-radius: var(--radius); font-size: 11px; color: var(--text); margin-top: 6px; word-break: break-all; border: 1px solid var(--border); }
+  .copy-btn { padding: 4px 10px; font-size: 11px; font-weight: 500; border: 1px solid var(--border2); border-radius: var(--radius); cursor: pointer; background: var(--bg2); color: var(--text2); margin-top: 6px; font-family: var(--font); transition: all .15s; }
+  .copy-btn:hover { background: var(--bg3); color: var(--text); }
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-inner">
+    <div class="app-logo">RE Deal Analyzer <span>by Claude</span></div>
+    <nav class="app-nav">
+      <button class="nav-btn active" onclick="showPage('deals')">Deal Analyzer</button>
+      <button class="nav-btn" onclick="showPage('brrrr')">Private Money BRRRR</button>
+      <button class="nav-btn" onclick="showPage('portfolio')">Portfolio</button>
+      <button class="nav-btn" onclick="showPage('guide')">Notion Setup</button>
+    </nav>
+  </div>
+</header>
+
+<div class="app-body">
+
+<!-- ===================== PAGE: DEAL ANALYZER ===================== -->
+<div id="page-deals" class="page active">
+  <div class="prop-bar" id="deal-tabs"></div>
+  <div id="deal-panel"></div>
+</div>
+
+<!-- ===================== PAGE: PRIVATE MONEY BRRRR ===================== -->
+<div id="page-brrrr" class="page">
+  <div class="prop-bar" id="pm-tabs"></div>
+
+  <div class="view-tabs">
+    <button class="view-tab active" onclick="switchPMView('inputs')">Inputs</button>
+    <button class="view-tab" onclick="switchPMView('waterfall')">Waterfall</button>
+    <button class="view-tab" onclick="switchPMView('cashflow')">Cash flow</button>
+  </div>
+
+  <div id="pm-vpanel-inputs" class="vpanel active">
+    <div class="sec-label">Property</div>
+    <div class="g2">
+      <div class="field"><label>Address / nickname</label><input type="text" id="pm-addr" placeholder="e.g. 45 Lehn Springs Dr" oninput="pmSync('addr',this.value);pmCalc()"></div>
+      <div class="field"><label>Market / city</label><input type="text" id="pm-market" placeholder="e.g. Williamsville NY" oninput="pmSync('market',this.value)"></div>
+    </div>
+    <div class="sec-label">Acquisition</div>
+    <div class="g3">
+      <div class="field"><label>Purchase price</label><input type="number" id="pm-purchase" value="240000" oninput="pmSync('purchase',+this.value);pmCalc()"><div class="hint">What you pay the seller</div></div>
+      <div class="field"><label>Purchase closing costs</label><input type="number" id="pm-buy_close" value="3500" oninput="pmSync('buy_close',+this.value);pmCalc()"></div>
+      <div class="field"><label>ARV</label><input type="number" id="pm-arv" value="312500" oninput="pmSync('arv',+this.value);pmCalc()"><div class="hint">Post-rehab appraised value</div></div>
+    </div>
+    <div class="sec-label">Private / Hard Money Loan</div>
+    <div class="g4">
+      <div class="field"><label>Loan amount</label><input type="number" id="pm-pm_loan" value="240000" oninput="pmSync('pm_loan',+this.value);pmCalc()"><div class="hint">Usually = purchase price</div></div>
+      <div class="field"><label>Interest rate %/yr</label><input type="number" id="pm-pm_rate" value="12" step="0.25" oninput="pmSync('pm_rate',+this.value);pmCalc()"><div class="hint">Typical NY: 10–14%</div></div>
+      <div class="field"><label>Origination points</label><input type="number" id="pm-pm_pts" value="2" step="0.5" oninput="pmSync('pm_pts',+this.value);pmCalc()"></div>
+      <div class="field"><label>Hold months</label><input type="number" id="pm-hold_mo" value="4" oninput="pmSync('hold_mo',+this.value);pmCalc()"><div class="hint">Time before refi</div></div>
+    </div>
+    <div class="sec-label">Rehab</div>
+    <div class="g3">
+      <div class="field"><label>Rehab cost (self-funded)</label><input type="number" id="pm-rehab" value="35650" oninput="pmSync('rehab',+this.value);pmCalc()"></div>
+      <div class="field"><label>Contingency %</label><input type="number" id="pm-contingency" value="15" oninput="pmSync('contingency',+this.value);pmCalc()"></div>
+      <div class="field"><label>Rehab financed by PM?</label><select id="pm-rehab_financed" onchange="pmSync('rehab_financed',this.value);pmCalc()"><option value="no">No — I fund rehab</option><option value="yes">Yes — PM covers draws</option></select></div>
+    </div>
+    <div class="sec-label">Cash-out Refinance</div>
+    <div class="g4">
+      <div class="field"><label>Refi LTV %</label><input type="number" id="pm-refi_ltv" value="75" oninput="pmSync('refi_ltv',+this.value);pmCalc()"></div>
+      <div class="field"><label>Refi rate %</label><input type="number" id="pm-refi_rate" value="7.5" step="0.125" oninput="pmSync('refi_rate',+this.value);pmCalc()"></div>
+      <div class="field"><label>Loan term (yrs)</label><input type="number" id="pm-refi_term" value="30" oninput="pmSync('refi_term',+this.value);pmCalc()"></div>
+      <div class="field"><label>Refi closing costs</label><input type="number" id="pm-refi_close" value="4688" oninput="pmSync('refi_close',+this.value);pmCalc()"></div>
+    </div>
+    <div class="sec-label">Rental Income & Expenses</div>
+    <div class="g3">
+      <div class="field"><label>Gross monthly rent</label><input type="number" id="pm-rent" value="2100" oninput="pmSync('rent',+this.value);pmCalc()"></div>
+      <div class="field"><label>Vacancy %</label><input type="number" id="pm-vacancy" value="8" oninput="pmSync('vacancy',+this.value);pmCalc()"></div>
+      <div class="field"><label>Property tax / mo</label><input type="number" id="pm-tax" value="375" oninput="pmSync('tax',+this.value);pmCalc()"></div>
+    </div>
+    <div class="g3" style="margin-top:10px">
+      <div class="field"><label>Insurance / mo</label><input type="number" id="pm-ins" value="120" oninput="pmSync('ins',+this.value);pmCalc()"></div>
+      <div class="field"><label>CapEx + repairs / mo</label><input type="number" id="pm-capex" value="168" oninput="pmSync('capex',+this.value);pmCalc()"></div>
+      <div class="field"><label>Mgmt %</label><input type="number" id="pm-mgmt_pct" value="0" oninput="pmSync('mgmt_pct',+this.value);pmCalc()"></div>
+    </div>
+    <div id="pm-metrics-out" style="margin-top:12px"></div>
+    <div id="pm-verdict-out"></div>
+  </div>
+  <div id="pm-vpanel-waterfall" class="vpanel"><div id="pm-waterfall-out"></div></div>
+  <div id="pm-vpanel-cashflow" class="vpanel"><div id="pm-cashflow-out"></div></div>
+</div>
+
+<!-- ===================== PAGE: PORTFOLIO ===================== -->
+<div id="page-portfolio" class="page">
+  <div id="portfolio-out"></div>
+</div>
+
+<!-- ===================== PAGE: NOTION GUIDE ===================== -->
+<div id="page-guide" class="page">
+  <div class="card">
+    <div class="card-title">How to embed this app in Notion</div>
+    <div class="guide-step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <div class="step-title">Download this file</div>
+        <div class="step-desc">You received this as <strong>brrrr_deal_analyzer.html</strong>. Save it to your computer if you haven't already.</div>
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <div class="step-title">Host it free on Netlify Drop</div>
+        <div class="step-desc">Go to <strong>netlify.com/drop</strong>, drag and drop your HTML file onto the page. Netlify gives you a free public URL in under 30 seconds — no account required.</div>
+        <div class="step-code">netlify.com/drop</div>
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <div class="step-title">Copy your live URL</div>
+        <div class="step-desc">After uploading, Netlify shows a URL like <code>https://random-name-123.netlify.app</code>. Copy that URL — you'll paste it into Notion next.</div>
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">4</div>
+      <div class="step-body">
+        <div class="step-title">Embed in Notion</div>
+        <div class="step-desc">In Notion, type <strong>/embed</strong> and hit enter. Paste your Netlify URL. Resize the embed block to fill the page. Your full interactive calculator will live directly inside Notion.</div>
+        <div class="step-code">/embed → paste your Netlify URL → Enter</div>
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">5</div>
+      <div class="step-body">
+        <div class="step-title">Optional: Custom domain</div>
+        <div class="step-desc">If you want a clean URL like <strong>deals.yourdomain.com</strong>, create a free Netlify account and connect your domain in the site settings. Takes 5 minutes.</div>
+      </div>
+    </div>
+    <div class="guide-step">
+      <div class="step-num">6</div>
+      <div class="step-body">
+        <div class="step-title">Note on data persistence</div>
+        <div class="step-desc">Deal data lives in your browser session — refreshing clears it. For permanent deal storage, ask Claude to add a local storage save/load feature, or export your deal summary from the Portfolio tab.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- end app-body -->
+
+<script>
+// ==================== UTILITIES ====================
+function uid(){return Math.random().toString(36).slice(2,7)}
+function fmt(n){return '$'+Math.abs(Math.round(n)).toLocaleString()}
+function pct(n){return n.toFixed(1)+'%'}
+function mtg(p,r,y){if(!r||!p)return 0;const m=r/100/12,n=y*12;return p*(m*Math.pow(1+m,n))/(Math.pow(1+m,n)-1)}
+
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['deals','brrrr','portfolio','guide'][i]===id);
+  });
+  if(id==='portfolio') renderPortfolioPage();
+}
+
+// ==================== DEAL ANALYZER ====================
+const STRATS=['wholesale','brrrr','rental','flip'];
+const SLABELS={wholesale:'Wholesale',brrrr:'BRRRR',rental:'Buy & Hold',flip:'Fix & Flip'};
+const DDEFS={
+  wholesale:{arv:200000,repair:30000,fee:10000,close:3000,misc:2000,pct:70,ask:105000},
+  brrrr:{purchase:80000,rehab:40000,closein:5000,arv:175000,ltv:75,rate:7.5,term:30,reficlose:4000,rent:1400,vac:8,exp:350},
+  rental:{price:150000,down:20,rate:7.25,term:30,close:4500,rent:1500,vac:8,tax:150,ins:80,capex:100,mgmt:10},
+  flip:{purchase:110000,rehab:35000,closein:3000,arv:215000,months:5,hold:1200,comm:6,closeout:2500}
+};
+
+let deals=[], activeDeal=null;
+
+function addDeal(){
+  const id=uid();
+  deals.push({id,addr:'',strat:'wholesale',inputs:JSON.parse(JSON.stringify(DDEFS))});
+  activeDeal=id;
+  renderDealTabs();renderDealPanel();
+}
+
+function removeDeal(id){
+  deals=deals.filter(d=>d.id!==id);
+  if(activeDeal===id) activeDeal=deals.length?deals[deals.length-1].id:null;
+  renderDealTabs();
+  if(activeDeal) renderDealPanel();
+  else document.getElementById('deal-panel').innerHTML='<div class="empty">No deals yet. Add one above.</div>';
+}
+
+function selectDeal(id){activeDeal=id;renderDealTabs();renderDealPanel();}
+
+function getDeal(){return deals.find(d=>d.id===activeDeal)}
+
+function dealScore(d){
+  const inp=d.inputs[d.strat];
+  if(d.strat==='wholesale'){
+    const mao=(inp.arv*(inp.pct/100))-inp.repair-inp.fee-inp.close-inp.misc;
+    let s=0;if(inp.ask<=mao)s+=40;if((inp.ask/inp.arv*100)<=inp.pct)s+=30;if(inp.fee>=5000)s+=20;else if(inp.fee>2000)s+=10;if((inp.fee/inp.arv*100)>=3)s+=10;return s;
+  }
+  if(d.strat==='brrrr'){
+    const totalIn=inp.purchase+inp.rehab+inp.closein,refiLoan=inp.arv*(inp.ltv/100),pctR=(refiLoan/totalIn)*100;
+    const leftIn=totalIn-refiLoan+inp.reficlose,piti=mtg(refiLoan,inp.rate,inp.term)+inp.exp,effRent=inp.rent*(1-inp.vac/100),cf=effRent-piti,cap=((effRent-inp.exp)*12/inp.arv)*100,coc=leftIn>0?(cf*12/leftIn)*100:999;
+    let s=0;if(pctR>=75)s+=35;else if(pctR>=50)s+=15;if(cf>=100)s+=30;else if(cf>=0)s+=15;if(coc>=8)s+=20;else if(coc>=5)s+=10;if(cap>=6)s+=15;return s;
+  }
+  if(d.strat==='rental'){
+    const loan=inp.price*(1-inp.down/100),pAndI=mtg(loan,inp.rate,inp.term),effRent=inp.rent*(1-inp.vac/100),mgmt=inp.rent*(inp.mgmt/100),cf=effRent-(pAndI+inp.tax+inp.ins+inp.capex+mgmt),noi=(effRent-inp.tax-inp.ins-inp.capex-mgmt)*12,cap=(noi/inp.price)*100,invested=inp.price*(inp.down/100)+inp.close,coc=(cf*12/invested)*100,oneP=(inp.rent/inp.price)*100;
+    let s=0;if(cf>=100)s+=30;else if(cf>=0)s+=15;if(cap>=6)s+=25;else if(cap>=5)s+=12;if(coc>=8)s+=25;else if(coc>=5)s+=12;if(oneP>=1)s+=20;return s;
+  }
+  if(d.strat==='flip'){
+    const totalIn=inp.purchase+inp.rehab+inp.closein+(inp.hold*inp.months),sellCosts=inp.arv*(inp.comm/100)+inp.closeout,profit=inp.arv-totalIn-sellCosts,roi=(profit/totalIn)*100,annRoi=(roi/inp.months)*12,pctArv=(totalIn/inp.arv)*100;
+    let s=0;if(profit>=20000)s+=30;else if(profit>=10000)s+=15;if(roi>=20)s+=25;else if(roi>=10)s+=12;if(annRoi>=40)s+=25;else if(annRoi>=25)s+=12;if(pctArv<=75)s+=20;return s;
+  }
+  return 0;
+}
+
+function renderDealTabs(){
+  const el=document.getElementById('deal-tabs');
+  if(!deals.length){el.innerHTML=`<button class="add-prop-btn" onclick="addDeal()">+ Add property</button>`;return;}
+  el.innerHTML=deals.map(d=>{
+    const sc=Math.round(dealScore(d));const cls=sc>=70?'#27500a':sc>=45?'#633806':'#791f1f';const bg=sc>=70?'#eaf3de':sc>=45?'#faeeda':'#fcebeb';
+    return `<button class="prop-chip ${d.id===activeDeal?'active':''}" onclick="selectDeal('${d.id}')">${d.addr||'New property'}<span class="score-dot" style="background:${bg};color:${cls}">${sc}</span></button>`;
+  }).join('')+`<button class="add-prop-btn" onclick="addDeal()">+ Add</button>`+(deals.length>1?`<button class="remove-btn" onclick="removeDeal('${activeDeal}')">Remove</button>`:'');
+}
+
+function fld(k,lbl,val,step='1',ph=''){
+  return `<div class="field"><label>${lbl}</label><input type="number" step="${step}" value="${val}" placeholder="${ph}" oninput="dealSetVal('${k}',this.value)"></div>`;
+}
+
+function renderDealPanel(){
+  const d=getDeal();if(!d){document.getElementById('deal-panel').innerHTML='<div class="empty">No deals yet.</div>';return;}
+  const inp=d.inputs[d.strat];
+  let formHTML='';
+  if(d.strat==='wholesale') formHTML=`
+    <div class="sec-label">Property info</div>
+    <div class="g3">${fld('arv','ARV',inp.arv)}${fld('repair','Repair cost',inp.repair)}${fld('ask','Seller asking price',inp.ask)}</div>
+    <div class="g4" style="margin-top:10px">${fld('fee','Assignment fee',inp.fee)}${fld('close','Buyer closing',inp.close)}${fld('misc','Misc costs',inp.misc)}${fld('pct','Investor max % ARV',inp.pct)}</div>`;
+  else if(d.strat==='brrrr') formHTML=`
+    <div class="sec-label">Purchase & rehab</div>
+    <div class="g3">${fld('purchase','Purchase price',inp.purchase)}${fld('rehab','Rehab cost',inp.rehab)}${fld('closein','Closing + misc',inp.closein)}</div>
+    <div class="sec-label">Refinance</div>
+    <div class="g4">${fld('arv','ARV',inp.arv)}${fld('ltv','Refi LTV %',inp.ltv)}${fld('rate','Rate %',inp.rate,'0.1')}${fld('term','Term (yrs)',inp.term)}</div>
+    <div class="g2" style="margin-top:10px">${fld('reficlose','Refi closing',inp.reficlose)}${fld('rent','Monthly rent',inp.rent)}</div>
+    <div class="g2" style="margin-top:10px">${fld('vac','Vacancy %',inp.vac)}${fld('exp','Monthly expenses',inp.exp)}</div>`;
+  else if(d.strat==='rental') formHTML=`
+    <div class="sec-label">Acquisition</div>
+    <div class="g3">${fld('price','Purchase price',inp.price)}${fld('down','Down payment %',inp.down)}${fld('rate','Rate %',inp.rate,'0.1')}</div>
+    <div class="g2" style="margin-top:10px">${fld('term','Term (yrs)',inp.term)}${fld('close','Closing costs',inp.close)}</div>
+    <div class="sec-label">Income & expenses</div>
+    <div class="g3">${fld('rent','Monthly rent',inp.rent)}${fld('vac','Vacancy %',inp.vac)}${fld('tax','Tax/mo',inp.tax)}</div>
+    <div class="g3" style="margin-top:10px">${fld('ins','Insurance/mo',inp.ins)}${fld('capex','CapEx/mo',inp.capex)}${fld('mgmt','Mgmt %',inp.mgmt)}</div>`;
+  else formHTML=`
+    <div class="sec-label">Acquisition & rehab</div>
+    <div class="g3">${fld('purchase','Purchase price',inp.purchase)}${fld('rehab','Rehab cost',inp.rehab)}${fld('closein','Purchase closing',inp.closein)}</div>
+    <div class="sec-label">Holding & sale</div>
+    <div class="g4">${fld('arv','ARV / sell price',inp.arv)}${fld('months','Hold months',inp.months)}${fld('hold','Monthly hold cost',inp.hold)}${fld('comm','Agent commission %',inp.comm,'0.5')}</div>
+    <div class="g2" style="margin-top:10px">${fld('closeout','Sell closing',inp.closeout)}</div>`;
+
+  document.getElementById('deal-panel').innerHTML=`
+    <div class="card">
+      <div class="g2" style="margin-bottom:14px">
+        <div class="field"><label>Property address / nickname</label><input type="text" value="${d.addr}" oninput="dealSetAddr(this.value)" placeholder="e.g. 123 Main St"></div>
+        <div class="field"><label>Strategy</label><select onchange="dealSetStrat(this.value)">${STRATS.map(s=>`<option value="${s}" ${s===d.strat?'selected':''}>${SLABELS[s]}</option>`).join('')}</select></div>
+      </div>
+      <div class="strat-tabs">${STRATS.map(s=>`<button class="strat-tab ${s===d.strat?'active':''}" onclick="dealSetStrat('${s}')">${SLABELS[s]}</button>`).join('')}</div>
+      ${formHTML}
+      <div id="deal-calc-out"></div>
+    </div>`;
+  dealCalcRender();
+}
+
+function dealSetAddr(v){const d=getDeal();if(d){d.addr=v;renderDealTabs();}}
+function dealSetStrat(s){const d=getDeal();if(d){d.strat=s;renderDealPanel();}}
+function dealSetVal(k,v){const d=getDeal();if(d){d.inputs[d.strat][k]=parseFloat(v)||0;dealCalcRender();renderDealTabs();}}
+
+function dealCalcRender(){
+  const d=getDeal();if(!d)return;
+  const el=document.getElementById('deal-calc-out');if(!el)return;
+  const inp=d.inputs[d.strat];
+  let mets='',crits=[],sc=0;
+
+  if(d.strat==='wholesale'){
+    const mao=(inp.arv*(inp.pct/100))-inp.repair-inp.fee-inp.close-inp.misc;
+    const spread=mao-inp.ask,pctArv=(inp.ask/inp.arv)*100,profPct=(inp.fee/inp.arv)*100;
+    mets=M('MAO',fmt(mao))+M('Spread',(spread>=0?'+':'-')+fmt(spread),spread>=0?'room':'overpaying',spread>=0?'good':'bad')+M('Ask % ARV',pct(pctArv),'target ≤'+inp.pct+'%',pctArv<=inp.pct?'good':'bad')+M('Assign fee',fmt(inp.fee),pct(profPct)+' ARV');
+    const r1=inp.ask<=mao,r2=pctArv<=inp.pct,r3=inp.fee>=5000,r4=profPct>=3;
+    if(r1)sc+=40;if(r2)sc+=30;if(inp.fee>=5000)sc+=20;else if(inp.fee>2000)sc+=10;if(r4)sc+=10;
+    crits=[{l:'Ask ≤ MAO',v:fmt(inp.ask)+' vs '+fmt(mao),p:r1,w:false},{l:'Price ≤ '+inp.pct+'% ARV',v:pct(pctArv),p:r2,w:false},{l:'Min $5k fee',v:fmt(inp.fee),p:r3,w:inp.fee>2000&&!r3},{l:'Fee ≥ 3% ARV',v:pct(profPct),p:r4,w:false}];
+  }
+  if(d.strat==='brrrr'){
+    const totalIn=inp.purchase+inp.rehab+inp.closein,refiLoan=inp.arv*(inp.ltv/100),pctR=(refiLoan/totalIn)*100,leftIn=totalIn-refiLoan+inp.reficlose,piti=mtg(refiLoan,inp.rate,inp.term)+inp.exp,effRent=inp.rent*(1-inp.vac/100),cf=effRent-piti,cap=((effRent-inp.exp)*12/inp.arv)*100,coc=leftIn>0?(cf*12/leftIn)*100:999;
+    mets=M('All-in',fmt(totalIn))+M('Refi loan',fmt(refiLoan))+M('Recouped',pct(pctR),'',pctR>=75?'good':pctR>=50?'warn':'bad')+M('Left in',fmt(Math.max(leftIn,0)),leftIn<=0?'full pull':'')+M('Cash flow',(cf>=0?'+':'-')+fmt(cf)+'/mo','',cf>=100?'good':cf>=0?'warn':'bad')+M('CoC',(coc>=999?'∞':pct(coc)),'',coc>=8?'good':coc>=5?'warn':'bad')+M('Cap rate',pct(cap),'',cap>=6?'good':cap>=4?'warn':'bad');
+    const r1=pctR>=75,r2=cf>=100,r3=coc>=8,r4=cap>=6;
+    if(r1)sc+=35;else if(pctR>=50)sc+=15;if(r2)sc+=30;else if(cf>=0)sc+=15;if(r3)sc+=20;else if(coc>=5)sc+=10;if(r4)sc+=15;
+    crits=[{l:'Cash recouped ≥ 75%',v:pct(pctR),p:r1,w:pctR>=50&&!r1},{l:'CF ≥ $100/mo',v:(cf>=0?'+':'-')+fmt(cf),p:r2,w:cf>=0&&!r2},{l:'CoC ≥ 8%',v:coc>=999?'∞':pct(coc),p:r3,w:coc>=5&&!r3},{l:'Cap rate ≥ 6%',v:pct(cap),p:r4,w:false}];
+  }
+  if(d.strat==='rental'){
+    const loan=inp.price*(1-inp.down/100),pAndI=mtg(loan,inp.rate,inp.term),effRent=inp.rent*(1-inp.vac/100),mgmt=inp.rent*(inp.mgmt/100),cf=effRent-(pAndI+inp.tax+inp.ins+inp.capex+mgmt),noi=(effRent-inp.tax-inp.ins-inp.capex-mgmt)*12,cap=(noi/inp.price)*100,invested=inp.price*(inp.down/100)+inp.close,coc=(cf*12/invested)*100,oneP=(inp.rent/inp.price)*100;
+    mets=M('Cash flow',(cf>=0?'+':'-')+fmt(cf)+'/mo','',cf>=100?'good':cf>=0?'warn':'bad')+M('Cap rate',pct(cap),'',cap>=6?'good':cap>=4?'warn':'bad')+M('CoC',pct(coc),'',coc>=8?'good':coc>=5?'warn':'bad')+M('1% rule',pct(oneP),'',oneP>=1?'good':oneP>=0.8?'warn':'bad')+M('Invested',fmt(invested))+M('P&I',fmt(pAndI)+'/mo');
+    const r1=cf>=100,r2=cap>=6,r3=coc>=8,r4=oneP>=1;
+    if(r1)sc+=30;else if(cf>=0)sc+=15;if(r2)sc+=25;else if(cap>=5)sc+=12;if(r3)sc+=25;else if(coc>=5)sc+=12;if(r4)sc+=20;
+    crits=[{l:'CF ≥ $100/mo',v:(cf>=0?'+':'-')+fmt(cf),p:r1,w:cf>=0&&!r1},{l:'Cap rate ≥ 6%',v:pct(cap),p:r2,w:cap>=5&&!r2},{l:'CoC ≥ 8%',v:pct(coc),p:r3,w:coc>=5&&!r3},{l:'1% rule',v:pct(oneP),p:r4,w:oneP>=0.8&&!r4}];
+  }
+  if(d.strat==='flip'){
+    const totalIn=inp.purchase+inp.rehab+inp.closein+(inp.hold*inp.months),sellCosts=inp.arv*(inp.comm/100)+inp.closeout,profit=inp.arv-totalIn-sellCosts,roi=(profit/totalIn)*100,annRoi=(roi/inp.months)*12,pctArv=(totalIn/inp.arv)*100;
+    mets=M('All-in',fmt(totalIn))+M('Net profit',(profit>=0?'+':'-')+fmt(profit),'',profit>=20000?'good':profit>=0?'warn':'bad')+M('ROI',pct(roi),'',roi>=20?'good':roi>=10?'warn':'bad')+M('Annualized',pct(annRoi),'',annRoi>=40?'good':annRoi>=25?'warn':'bad')+M('All-in/ARV',pct(pctArv),'target ≤75%',pctArv<=75?'good':pctArv<=85?'warn':'bad');
+    const r1=profit>=20000,r2=roi>=20,r3=annRoi>=40,r4=pctArv<=75;
+    if(r1)sc+=30;else if(profit>=10000)sc+=15;if(r2)sc+=25;else if(roi>=10)sc+=12;if(r3)sc+=25;else if(annRoi>=25)sc+=12;if(r4)sc+=20;
+    crits=[{l:'Net profit ≥ $20k',v:(profit>=0?'+':'-')+fmt(profit),p:r1,w:profit>=10000&&!r1},{l:'ROI ≥ 20%',v:pct(roi),p:r2,w:roi>=10&&!r2},{l:'Annualized ≥ 40%',v:pct(annRoi),p:r3,w:annRoi>=25&&!r3},{l:'All-in ≤ 75% ARV',v:pct(pctArv),p:r4,w:false}];
+  }
+
+  const vcls=sc>=70?'pass':sc>=45?'warn':'fail';const bc=sc>=70?'#639922':sc>=45?'#ba7517':'#e24b4a';
+  el.innerHTML=`<div class="metrics">${mets}</div><div class="verdict ${vcls}">
+    <div class="vt">${sc>=70?'Pass':sc>=45?'Review':'Fail'} — Score: ${Math.round(sc)}/100</div>
+    <div class="bw"><div class="bar" style="width:${sc}%;background:${bc}"></div></div>
+    <div>${crits.map(c=>`<div class="crit"><div class="dot ${c.p?'p':c.w?'w':'f'}"></div><span class="cl">${c.l}</span><span class="cv">${c.v}</span></div>`).join('')}
+    </div></div>`;
+}
+
+function M(label,val,sub='',cls=''){return `<div class="met ${cls}"><div class="ml">${label}</div><div class="mv">${val}</div>${sub?`<div class="ms">${sub}</div>`:''}</div>`;}
+
+// ==================== PRIVATE MONEY BRRRR ====================
+const PM_DEFAULTS={addr:'',market:'',purchase:240000,buy_close:3500,arv:312500,pm_loan:240000,pm_rate:12,pm_pts:2,hold_mo:4,rehab:35650,contingency:15,rehab_financed:'no',refi_ltv:75,refi_rate:7.5,refi_term:30,refi_close:4688,rent:2100,vacancy:8,tax:375,ins:120,capex:168,mgmt_pct:0};
+let pmDeals=[], activePM=null;
+
+function addPMDeal(){
+  const id=uid();
+  pmDeals.push({id,...JSON.parse(JSON.stringify(PM_DEFAULTS))});
+  activePM=id;renderPMTabs();pmLoadInputs();pmCalc();
+}
+
+function removePMDeal(id){
+  pmDeals=pmDeals.filter(p=>p.id!==id);
+  if(activePM===id) activePM=pmDeals.length?pmDeals[pmDeals.length-1].id:null;
+  renderPMTabs();if(activePM){pmLoadInputs();pmCalc();}
+}
+
+function selectPMDeal(id){activePM=id;renderPMTabs();pmLoadInputs();pmCalc();}
+function getPM(){return pmDeals.find(p=>p.id===activePM)}
+function pmSync(k,v){const p=getPM();if(p){p[k]=v;renderPMTabs();}}
+
+function pmCompute(p){
+  const rehabTotal=p.rehab*(1+p.contingency/100);
+  const rf=p.rehab_financed==='yes';
+  const pmCarry=(p.pm_loan*(p.pm_rate/100)/12)*p.hold_mo;
+  const pmOrig=p.pm_loan*(p.pm_pts/100);
+  const totalCashIn=rf?pmOrig+p.buy_close:rehabTotal+pmOrig+p.buy_close;
+  const refiLoan=p.arv*(p.refi_ltv/100);
+  const refiSurplus=refiLoan-p.pm_loan-p.refi_close;
+  const cashLeftIn=Math.max(0,(totalCashIn+pmCarry)-refiSurplus);
+  const cashProfit=Math.max(0,refiSurplus-(totalCashIn+pmCarry));
+  const equity=p.arv-refiLoan;
+  const pAndI=mtg(refiLoan,p.refi_rate,p.refi_term);
+  const effRent=p.rent*(1-p.vacancy/100);
+  const mgmtAmt=p.rent*(p.mgmt_pct/100);
+  const totalExp=pAndI+p.tax+p.ins+p.capex+mgmtAmt;
+  const monthlyCF=effRent-totalExp;
+  const pctRecouped=(totalCashIn+pmCarry)>0?Math.min((refiSurplus/(totalCashIn+pmCarry))*100,999):999;
+  return {rehabTotal,pmCarry,pmOrig,totalCashIn,refiLoan,refiSurplus,cashLeftIn,cashProfit,equity,pAndI,effRent,mgmtAmt,totalExp,monthlyCF,pctRecouped};
+}
+
+function pmScore(r,p){
+  let s=0;
+  const leftPct=r.cashLeftIn/(r.totalCashIn+r.pmCarry||1)*100;
+  if(r.cashProfit>0)s+=35;else if(leftPct<10)s+=28;else if(leftPct<30)s+=18;else if(leftPct<60)s+=8;
+  if(r.monthlyCF>=200)s+=25;else if(r.monthlyCF>=0)s+=15;else if(r.monthlyCF>=-200)s+=8;
+  const cap=(r.effRent-p.tax-p.ins-p.capex-r.mgmtAmt)*12/p.arv*100;
+  if(cap>=7)s+=20;else if(cap>=5)s+=12;else if(cap>=3)s+=5;
+  if(r.equity>=80000)s+=20;else if(r.equity>=40000)s+=12;else if(r.equity>=20000)s+=6;
+  return Math.min(s,100);
+}
+
+function renderPMTabs(){
+  const el=document.getElementById('pm-tabs');
+  if(!pmDeals.length){el.innerHTML=`<button class="add-prop-btn" onclick="addPMDeal()">+ Add deal</button>`;return;}
+  el.innerHTML=pmDeals.map(p=>{
+    const r=pmCompute(p),sc=Math.round(pmScore(r,p));
+    const bg=sc>=70?'#eaf3de':sc>=45?'#faeeda':'#fcebeb';const tc=sc>=70?'#27500a':sc>=45?'#633806':'#791f1f';
+    return `<button class="prop-chip ${p.id===activePM?'active':''}" onclick="selectPMDeal('${p.id}')">${p.addr||'New deal'}<span class="score-dot" style="background:${bg};color:${tc}">${sc}</span></button>`;
+  }).join('')+`<button class="add-prop-btn" onclick="addPMDeal()">+ Add</button>`+(pmDeals.length>1?`<button class="remove-btn" onclick="removePMDeal('${activePM}')">Remove</button>`:'');
+}
+
+function pmLoadInputs(){
+  const p=getPM();if(!p)return;
+  ['addr','market','purchase','buy_close','arv','pm_loan','pm_rate','pm_pts','hold_mo','rehab','contingency','refi_ltv','refi_rate','refi_term','refi_close','rent','vacancy','tax','ins','capex','mgmt_pct'].forEach(k=>{const el=document.getElementById('pm-'+k);if(el)el.value=p[k];});
+  const rf=document.getElementById('pm-rehab_financed');if(rf)rf.value=p.rehab_financed;
+}
+
+function pmCalc(){
+  const p=getPM();if(!p)return;
+  const r=pmCompute(p);const sc=Math.round(pmScore(r,p));
+  const profCls=r.cashProfit>0?'good':r.cashLeftIn<5000?'good':r.cashLeftIn<30000?'warn':'bad';
+  const cfCls=r.monthlyCF>=100?'good':r.monthlyCF>=0?'warn':'bad';
+  const eqCls=r.equity>=60000?'good':r.equity>=20000?'warn':'bad';
+  document.getElementById('pm-metrics-out').innerHTML=`<div class="metrics">
+    ${M('Cash left in',r.cashLeftIn===0?'$0':fmt(r.cashLeftIn),r.cashProfit>0?fmt(r.cashProfit)+' profit':'target: $0',profCls)}
+    ${M('Refi surplus',r.refiSurplus>=0?'+'+fmt(r.refiSurplus):'-'+fmt(Math.abs(r.refiSurplus)),pct(Math.min(r.pctRecouped,100))+'% recouped',r.refiSurplus>r.totalCashIn+r.pmCarry?'good':r.refiSurplus>0?'warn':'bad')}
+    ${M('Monthly CF',(r.monthlyCF>=0?'+':'-')+fmt(r.monthlyCF)+'/mo','',cfCls)}
+    ${M('Equity',fmt(r.equity),'ARV minus refi loan',eqCls)}
+    ${M('Refi loan',fmt(r.refiLoan),pct(p.refi_ltv)+' LTV')}
+    ${M('Total cash in',fmt(r.totalCashIn+r.pmCarry),'rehab+fees+carry')}
+  </div>`;
+  const vcls=sc>=70?'pass':sc>=45?'warn':'fail';const bc=sc>=70?'#639922':sc>=45?'#ba7517':'#e24b4a';
+  const desc=sc>=70?`Strong deal. Refi recovers capital${r.cashProfit>0?' and returns '+fmt(r.cashProfit)+' profit':''}.`:sc>=45?`Partial recovery. ${r.cashLeftIn>0?fmt(r.cashLeftIn)+' left in. ':''}Focus on lowering purchase price.`:`Deal fails as structured. ${r.refiLoan<p.pm_loan?'Refi shortfall of '+fmt(p.pm_loan-r.refiLoan)+'. ':''}Negotiate price down significantly.`;
+  const crits=[
+    {l:'Cash recovered at refi',v:r.cashProfit>0?'Profit: +'+fmt(r.cashProfit):r.cashLeftIn===0?'Full pull':fmt(r.cashLeftIn)+' left',p:r.cashProfit>=0&&r.cashLeftIn<5000,w:r.cashLeftIn>=5000&&r.cashLeftIn<30000},
+    {l:'Cash flow ≥ $0/mo',v:(r.monthlyCF>=0?'+':'')+fmt(r.monthlyCF)+'/mo',p:r.monthlyCF>=0,w:r.monthlyCF>=-300&&r.monthlyCF<0},
+    {l:'Refi covers PM loan',v:r.refiLoan>=p.pm_loan?'Yes (+'+fmt(r.refiLoan-p.pm_loan)+')':'Shortfall: '+fmt(p.pm_loan-r.refiLoan),p:r.refiLoan>=p.pm_loan,w:false},
+    {l:'Equity ≥ $40K',v:fmt(r.equity),p:r.equity>=40000,w:r.equity>=20000&&r.equity<40000},
+  ];
+  document.getElementById('pm-verdict-out').innerHTML=`<div class="verdict ${vcls}">
+    <div class="vt">${sc>=70?'Pass':sc>=45?'Review':'Fail'} — Score: ${sc}/100</div>
+    <div class="bw"><div class="bar" style="width:${sc}%;background:${bc}"></div></div>
+    <div class="vp">${desc}</div>
+    <div>${crits.map(c=>`<div class="crit"><div class="dot ${c.p?'p':c.w?'w':'f'}"></div><span class="cl">${c.l}</span><span class="cv">${c.v}</span></div>`).join('')}</div>
+  </div>`;
+  renderPMWaterfall(p,r);renderPMCashflow(p,r);
+}
+
+function renderPMWaterfall(p,r){
+  const el=document.getElementById('pm-waterfall-out');if(!el)return;
+  const lCls=r.cashLeftIn<5000?'wf-final-good':r.cashLeftIn<30000?'wf-final-warn':'wf-final-bad';
+  el.innerHTML=`
+  <div class="wf-row wf-phase">Phase 1 — Acquisition</div>
+  <div class="wf-row"><span class="wf-label">Purchase price</span><span class="wf-amt out">-${fmt(p.purchase)}</span></div>
+  <div class="wf-row"><span class="wf-label">Private money loan (100% financed)</span><span class="wf-amt inn">+${fmt(p.pm_loan)}</span></div>
+  <div class="wf-row"><span class="wf-label">Origination (${p.pm_pts} pts)</span><span class="wf-amt out">-${fmt(r.pmOrig)}</span></div>
+  <div class="wf-row"><span class="wf-label">Purchase closing costs</span><span class="wf-amt out">-${fmt(p.buy_close)}</span></div>
+  <div class="wf-row wf-phase">Phase 2 — Rehab</div>
+  <div class="wf-row"><span class="wf-label">Rehab + contingency</span><span class="wf-amt out">-${fmt(r.rehabTotal)}</span></div>
+  <div class="wf-row"><span class="wf-label">PM carry (${p.hold_mo}mo @ ${p.pm_rate}%)</span><span class="wf-amt out">-${fmt(r.pmCarry)}</span></div>
+  <div class="wf-row wf-sub"><span class="wf-label">Your total cash out of pocket</span><span class="wf-amt net">-${fmt(r.totalCashIn+r.pmCarry)}</span></div>
+  <div class="wf-row wf-phase">Phase 3 — Cash-out Refinance</div>
+  <div class="wf-row"><span class="wf-label">ARV</span><span class="wf-amt">${fmt(p.arv)}</span></div>
+  <div class="wf-row"><span class="wf-label">Refi loan @ ${p.refi_ltv}% LTV</span><span class="wf-amt inn">+${fmt(r.refiLoan)}</span></div>
+  <div class="wf-row"><span class="wf-label">Pay off private money loan</span><span class="wf-amt out">-${fmt(p.pm_loan)}</span></div>
+  <div class="wf-row"><span class="wf-label">Refi closing costs</span><span class="wf-amt out">-${fmt(p.refi_close)}</span></div>
+  <div class="wf-row wf-sub"><span class="wf-label">Net refi surplus after payoff</span><span class="wf-amt net">${r.refiSurplus>=0?'+'+fmt(r.refiSurplus):'-'+fmt(Math.abs(r.refiSurplus))}</span></div>
+  <div class="wf-row wf-phase">Final Position</div>
+  <div class="wf-row ${r.cashProfit>0?'wf-final-good':lCls}"><span class="wf-label">${r.cashProfit>0?'Tax-free cash profit':'Cash still left in deal'}</span><span class="wf-amt">${r.cashProfit>0?'+'+fmt(r.cashProfit):fmt(r.cashLeftIn)}</span></div>
+  <div class="wf-row ${r.equity>=40000?'wf-final-good':'wf-final-warn'}"><span class="wf-label">Equity held in property</span><span class="wf-amt">+${fmt(r.equity)}</span></div>
+  <div class="wf-row wf-sub"><span class="wf-label">Net wealth created</span><span class="wf-amt net">${fmt(r.equity+(r.cashProfit||0))}</span></div>`;
+}
+
+function renderPMCashflow(p,r){
+  const el=document.getElementById('pm-cashflow-out');if(!el)return;
+  const mgmtAmt=p.rent*(p.mgmt_pct/100);
+  const cap=(r.effRent-p.tax-p.ins-p.capex-mgmtAmt)*12/p.arv*100;
+  const dscr=r.pAndI>0?r.effRent/r.pAndI:0;
+  el.innerHTML=`
+  <div class="card">
+    <div class="card-title">Monthly income & expenses (post-refi)</div>
+    <div class="drow"><span class="rl">Gross rent</span><span class="rv pos">+${fmt(p.rent)}</span></div>
+    <div class="drow"><span class="rl">Vacancy (${p.vacancy}%)</span><span class="rv neg">-${fmt(p.rent*(p.vacancy/100))}</span></div>
+    <div class="drow"><span class="rl">Effective gross income</span><span class="rv">${fmt(r.effRent)}</span></div>
+    <div class="drow"><span class="rl">P&I on ${fmt(r.refiLoan)} @ ${p.refi_rate}%</span><span class="rv neg">-${fmt(r.pAndI)}</span></div>
+    <div class="drow"><span class="rl">Property tax</span><span class="rv neg">-${fmt(p.tax)}</span></div>
+    <div class="drow"><span class="rl">Insurance</span><span class="rv neg">-${fmt(p.ins)}</span></div>
+    <div class="drow"><span class="rl">CapEx + repairs</span><span class="rv neg">-${fmt(p.capex)}</span></div>
+    ${mgmtAmt>0?`<div class="drow"><span class="rl">Mgmt (${p.mgmt_pct}%)</span><span class="rv neg">-${fmt(mgmtAmt)}</span></div>`:''}
+    <div class="drow total"><span class="rl" style="font-weight:600">Monthly cash flow</span><span class="rv xl ${r.monthlyCF>=0?'pos':'neg'}">${r.monthlyCF>=0?'+':'-'}${fmt(r.monthlyCF)}/mo</span></div>
+  </div>
+  <div class="metrics">
+    ${M('Cap rate',pct(cap),'',cap>=6?'good':cap>=4?'warn':'bad')}
+    ${M('DSCR',dscr.toFixed(2)+'x','',dscr>=1.2?'good':dscr>=1?'warn':'bad')}
+    ${M('Break-even rent',fmt(r.totalExp+p.rent*(p.vacancy/100))+'/mo','')}
+    ${M('CoC return',r.cashLeftIn>1000?pct((r.monthlyCF*12/r.cashLeftIn)*100):'∞ (zero-in)','',r.cashLeftIn<1000?'good':((r.monthlyCF*12/r.cashLeftIn)*100)>=8?'good':'warn')}
+  </div>`;
+}
+
+function switchPMView(id){
+  ['inputs','waterfall','cashflow'].forEach(v=>{
+    document.getElementById('pm-vpanel-'+v).classList.toggle('active',v===id);
+    document.querySelectorAll('.view-tab').forEach((t,i)=>{t.classList.toggle('active',['inputs','waterfall','cashflow'][i]===id);});
+  });
+}
+
+// ==================== PORTFOLIO ====================
+function renderPortfolioPage(){
+  const el=document.getElementById('portfolio-out');
+  const allDeals=[
+    ...deals.map(d=>{const r=dealCalcResult(d);return{addr:d.addr||'Unnamed',strat:SLABELS[d.strat],purchase:d.inputs[d.strat].price||d.inputs[d.strat].purchase||d.inputs[d.strat].arv,score:Math.round(dealScore(d)),cf:r.cf,equity:r.equity,type:'standard'};}),
+    ...pmDeals.map(p=>{const r=pmCompute(p);const sc=Math.round(pmScore(r,p));return{addr:p.addr||'Unnamed',strat:'PM BRRRR',purchase:p.purchase,score:sc,cf:r.monthlyCF,equity:r.equity,type:'pm',cashLeft:r.cashLeftIn,profit:r.cashProfit};})
+  ];
+  if(!allDeals.length){el.innerHTML='<div class="empty">No deals yet. Add some in Deal Analyzer or Private Money BRRRR.</div>';return;}
+  const totCF=allDeals.reduce((a,d)=>a+(d.cf||0),0);
+  const totEq=allDeals.reduce((a,d)=>a+(d.equity||0),0);
+  const passing=allDeals.filter(d=>d.score>=70).length;
+  el.innerHTML=`
+  <div class="metrics" style="margin-bottom:20px">
+    ${M('Total deals',allDeals.length,'')}
+    ${M('Passing (≥70)',passing+' of '+allDeals.length,'',passing===allDeals.length?'good':passing>0?'warn':'bad')}
+    ${M('Portfolio CF',(totCF>=0?'+':'-')+fmt(totCF)+'/mo','',totCF>=0?'good':totCF>-500?'warn':'bad')}
+    ${M('Total equity',fmt(totEq),'across all deals','good')}
+  </div>
+  <div style="overflow-x:auto"><table class="ptable">
+    <thead><tr><th>Property</th><th>Strategy</th><th>Purchase</th><th>Score</th><th>Cash flow</th><th>Equity</th></tr></thead>
+    <tbody>${allDeals.map(d=>{
+      const cls=d.score>=70?'pass':d.score>=45?'warn':'fail';
+      const cfCls=d.cf>=100?'good':d.cf>=0?'warn':'bad';
+      return `<tr><td>${d.addr}</td><td>${d.strat}</td><td>${fmt(d.purchase)}</td><td><span class="pill ${cls}">${d.score}</span></td><td class="${cfCls}">${d.cf>=0?'+':'-'}${fmt(d.cf)}/mo</td><td>${fmt(d.equity)}</td></tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function dealCalcResult(d){
+  const inp=d.inputs[d.strat];let cf=0,equity=0;
+  if(d.strat==='rental'){const loan=inp.price*(1-inp.down/100),pAndI=mtg(loan,inp.rate,inp.term),effRent=inp.rent*(1-inp.vac/100),mgmt=inp.rent*(inp.mgmt/100);cf=effRent-(pAndI+inp.tax+inp.ins+inp.capex+mgmt);equity=inp.price*(inp.down/100);}
+  if(d.strat==='brrrr'){const refiLoan=inp.arv*(inp.ltv/100),piti=mtg(refiLoan,inp.rate,inp.term)+inp.exp,effRent=inp.rent*(1-inp.vac/100);cf=effRent-piti;equity=inp.arv-refiLoan;}
+  if(d.strat==='flip'){const totalIn=inp.purchase+inp.rehab+inp.closein+(inp.hold*inp.months),sellCosts=inp.arv*(inp.comm/100)+inp.closeout;cf=inp.arv-totalIn-sellCosts;equity=cf;}
+  if(d.strat==='wholesale'){const mao=(inp.arv*(inp.pct/100))-inp.repair-inp.fee-inp.close-inp.misc;cf=inp.fee;equity=mao-inp.ask;}
+  return {cf,equity};
+}
+
+// ==================== INIT ====================
+addDeal();
+addPMDeal();
+// Pre-fill the PM deal with 45 Lehn Springs data
+const lspm=getPM();
+if(lspm){Object.assign(lspm,{addr:'45 Lehn Springs Dr',market:'Williamsville NY 14221',purchase:240000,arv:312500,pm_loan:240000,pm_rate:12,pm_pts:2,hold_mo:4,rehab:35650,contingency:15,refi_ltv:75,refi_rate:7.5,refi_term:30,refi_close:4688,rent:2100,vacancy:8,tax:375,ins:120,capex:168});pmLoadInputs();pmCalc();}
+// Pre-fill deal analyzer with Lehn Springs
+const lsd=getDeal();
+if(lsd){lsd.addr='45 Lehn Springs Dr';lsd.strat='brrrr';lsd.inputs.brrrr={purchase:80000,rehab:40000,closein:5000,arv:175000,ltv:75,rate:7.5,term:30,reficlose:4000,rent:1400,vac:8,exp:350};}
+renderDealTabs();renderDealPanel();renderPMTabs();
+</script>
+</body>
+</html>
